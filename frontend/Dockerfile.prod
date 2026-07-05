@@ -1,0 +1,33 @@
+# 构建阶段
+FROM node:22-alpine as build
+
+WORKDIR /app
+
+# 复制 package.json 和 package-lock.json
+COPY package*.json ./
+
+# 安装依赖
+RUN npm ci
+
+# 复制源代码
+COPY . .
+
+# 构建生产版本
+RUN npm run build
+
+# 生产阶段 - 使用 nginx 提供静态文件
+FROM nginx:alpine
+
+# 复制构建产物到 nginx 目录
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# 复制 nginx 模板，容器启动时由环境变量渲染
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+ENV BACKEND_UPSTREAM=http://backend:8001
+ENV NGINX_SERVER_NAME=_
+
+# 暴露端口
+EXPOSE 80
+
+# 启动 nginx
+CMD ["nginx", "-g", "daemon off;"]

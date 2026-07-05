@@ -1,0 +1,94 @@
+/* Message card */
+.message-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+.message-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.message-card-header {
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.message-poster-wrap {
+  position: relative;
+  background: var(--bg-surface-soft);
+}
+
+.message-poster-wrap::before {
+  content: "";
+  display: block;
+  padding-top: 150%;
+}
+
+.message-poster-wrap img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.message-card-body {
+  padding: 0.75rem;
+  flex: 1;
+}
+
+.message-card-title {
+  margin: 0;
+  font-size: 0.96rem;
+  line-height: 1.35;
+  -webkit-line-clamp: 2;
+  min-height: 2.6em;
+}
+
+.message-card-description {
+  margin: 0.5rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  -webkit-line-clamp: 3;
+}
+
+.message-link-details {
+  padding: 0 0.75rem 0.5rem;
+}
+
+.message-card-footer {
+  border-top: 1px solid var(--border-soft);
+  padding: 0.7rem 0.75rem;
+  background: var(--bg-surface-soft);
+}
+
+.card-mini-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+  font-size: 0.75rem;
+}
+
+.message-link-details details {
+  background: var(--bg-surface-soft) !important;
+  border-color: var(--border-soft) !important;
+}
+
+.message-link-details .btn-link {
+  color: var(--text-secondary) !important;
+}

@@ -1,0 +1,40 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Node / frontend
+node_modules/
+build/
+dist/
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.git/
+
+# Runtime data and secrets
+.env
+backend/.env
+*.log
+*.db
+*.db-*
+*.sqlite
+*.session
+*.session-*
+*.session-journal
+*.tar.gz
+
+# Local process files
+*.pid
+
+# Keep runtime directory structure, ignore contents.
+runtime/data/*
+runtime/sessions/*
+runtime/logs/*
+runtime/backups/*
+!runtime/data/.gitkeep
+!runtime/sessions/.gitkeep
+!runtime/logs/.gitkeep
+!runtime/backups/.gitkeep

@@ -1,0 +1,13 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+exclude = [
+    "venv",
+    "frontend/node_modules",
+    "frontend/dist",
+    "runtime",
+]
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "B", "ASYNC", "LOG"]
+ignore = ["E501"]

@@ -1,0 +1,2 @@
+export const DEFAULT_DEV_API_PROXY_TARGET = 'http://127.0.0.1:8001';
+export const DEFAULT_DEV_SERVER_PORT = 5172;

@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 数据库和会话文件（将通过 volume 挂载）
+*.db
+*.db-journal
+*.session
+*.session-journal
+
+# 日志
+*.log
+server.log
+uvicorn.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 环境变量（敏感信息）
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+
+# 文档
+*.md
+docs/
+
+# 测试
+tests/
+test_*.py
+*_test.py
+.env
+.env.*
+*.db-wal
+*.db-shm
+*.session-wal
+*.session-shm

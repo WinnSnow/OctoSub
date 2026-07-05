@@ -1,0 +1,41 @@
+/* Login */
+.auth-loading-screen,
+.system-login-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(135deg, rgba(16, 24, 40, 0.76), rgba(24, 34, 48, 0.62)),
+    url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1800&q=80');
+  background-size: cover;
+  background-position: center;
+  padding: 1rem;
+}
+
+.system-login-panel {
+  width: min(100%, 420px);
+  background: rgba(20,26,36,0.96);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+  padding: 2rem;
+}
+
+.login-kicker {
+  color: #fb923c;
+  font-weight: 800;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.login-title {
+  font-size: 1.75rem;
+  margin: 0.35rem 0 0.5rem;
+}
+
+.login-subtitle {
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}

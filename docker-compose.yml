@@ -1,0 +1,76 @@
+services:
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tg-web-backend
+    restart: unless-stopped
+    expose:
+      - "8001"
+    env_file:
+      - path: ./backend/.env
+        format: raw
+        required: false
+    volumes:
+      # 持久化数据
+      - ./runtime:/app/runtime
+    environment:
+      - TZ=Asia/Shanghai
+      - DATA_DIR=/app/runtime/data
+      - SESSION_DIR=/app/runtime/sessions
+      - LOG_DIR=/app/runtime/logs
+      - DB_PATH=/app/runtime/data/telegram_data.db
+      - SESSION_NAME=/app/runtime/sessions/anon
+      - PANSOU_BASE_URL=http://pansou:8888
+    depends_on:
+      - pansou
+    networks:
+      - tg-web-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/api/health', timeout=5).read()\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PanSou 搜索服务
+  pansou:
+    image: fish2018/pansou:latest
+    container_name: pansou-search
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      - AUTH_ENABLED=false
+      - CACHE_TTL=3600
+    networks:
+      - tg-web-network
+
+  # 前端服务（生产环境 - Nginx）
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: tg-web-frontend
+    restart: unless-stopped
+    ports:
+      - "55443:80"
+    environment:
+      - TZ=Asia/Shanghai
+      - BACKEND_UPSTREAM=http://backend:8001
+      - NGINX_SERVER_NAME=_
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - tg-web-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  tg-web-network:
+    driver: bridge

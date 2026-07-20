@@ -140,6 +140,21 @@ def complete_task(
     task = get_mutable_task(task_id, task_store, db_path=db_path, load_task_fn=load_task_fn)
     if not task:
         return
+    if task.get("status") == TASK_STATUS_CANCELLED:
+        return
+    if task.get("status") == TASK_STATUS_CANCEL_REQUESTED or task.get("cancel_requested"):
+        cancel_task(
+            task_id,
+            task_store=task_store,
+            db_path=db_path,
+            persist_task_fn=persist_task_fn,
+            load_task_fn=load_task_fn,
+            log_event_fn=log_event_fn,
+            message="任务已停止",
+            result={**(task.get("result") or {}), **(result or {}), "cancelled": True},
+            now_fn=now_fn,
+        )
+        return
     if message is not None:
         task["message"] = message
     if result is not None:
@@ -243,6 +258,21 @@ def fail_task(
 ) -> None:
     task = get_mutable_task(task_id, task_store, db_path=db_path, load_task_fn=load_task_fn)
     if not task:
+        return
+    if task.get("status") == TASK_STATUS_CANCELLED:
+        return
+    if task.get("status") == TASK_STATUS_CANCEL_REQUESTED or task.get("cancel_requested"):
+        cancel_task(
+            task_id,
+            task_store=task_store,
+            db_path=db_path,
+            persist_task_fn=persist_task_fn,
+            load_task_fn=load_task_fn,
+            log_event_fn=log_event_fn,
+            message="任务已停止",
+            result={**(task.get("result") or {}), "cancelled": True},
+            now_fn=now_fn,
+        )
         return
     task["status"] = TASK_STATUS_FAILED
     task["message"] = message

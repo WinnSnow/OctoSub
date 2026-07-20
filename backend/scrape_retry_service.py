@@ -11,7 +11,8 @@ from poster_service import fetch_movie_poster
 from scrape_link_collector_service import dedupe_preserve_order
 from scrape_telegram_readiness_service import TelegramScrapeUnavailable
 from structured_logging import log_event
-from task_service import complete_task, create_task, fail_task, update_task
+from task_service import complete_task, create_task, enqueue_heavy_task, fail_task, update_task
+from task_status import TASK_STATUS_QUEUED
 from utils import safe_error_detail
 
 
@@ -144,7 +145,7 @@ async def retry_missing_links_payload(
     retry_single_message_fn: Callable[[str, int], Awaitable[bool]],
     db_path: str = DB_PATH,
     create_task_fn: Callable[..., str] = create_task,
-    create_background_task_fn: Callable[[Awaitable[None]], asyncio.Task] = asyncio.create_task,
+    enqueue_task_fn: Callable[[str, Callable[[], Awaitable[None]]], object] = enqueue_heavy_task,
 ) -> dict:
     rows = await get_missing_link_rows(channel_name, db_path)
 
@@ -155,20 +156,22 @@ async def retry_missing_links_payload(
         "retry",
         "补链重试",
         total=len(rows),
-        message="正在初始化任务...",
+        message="补链重试任务排队中...",
+        status=TASK_STATUS_QUEUED,
         channel=channel_name,
     )
 
-    create_background_task_fn(
-        run_retry_missing_links_batch(
+    async def run_task():
+        await run_retry_missing_links_batch(
             rows,
             task_id,
             retry_single_message_fn=retry_single_message_fn,
         )
-    )
+
+    enqueue_task_fn(task_id, run_task)
     return {
-        "status": "success",
-        "message": f"已开始后台重试 {len(rows)} 条消息",
+        "status": TASK_STATUS_QUEUED,
+        "message": f"已将 {len(rows)} 条消息的补链重试加入后台队列",
         "count": len(rows),
         "task_id": task_id,
     }

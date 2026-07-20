@@ -78,6 +78,7 @@ TaskExceptionLogFields = dict | Callable[[Exception], dict]
 _HEAVY_TASK_QUEUE: deque[tuple[str, HeavyTaskFactory]] = deque()
 _HEAVY_TASK_WORKER: asyncio.Task | None = None
 _HEAVY_TASK_RUNNING_ID: str | None = None
+_HEAVY_TASK_RUNNING_TASK: asyncio.Task | None = None
 _HEAVY_TASK_LOCK: asyncio.Lock | None = None
 _HEAVY_TASK_ACCEPTING = True
 _TASK_LAST_PERSIST_STATE: dict[str, dict] = {}
@@ -345,7 +346,7 @@ def complete_task(task_id: str, message: str | None = None, result: dict | None 
 
 
 def request_cancel_task(task_id: str, message: str = "正在停止任务...") -> dict | None:
-    return task_lifecycle_service.request_cancel_task(
+    task = task_lifecycle_service.request_cancel_task(
         task_id,
         task_store=TASK_PROGRESS,
         db_path=DB_PATH,
@@ -354,6 +355,13 @@ def request_cancel_task(task_id: str, message: str = "正在停止任务...") ->
         log_event_fn=log_event,
         message=message,
     )
+    if not task:
+        return None
+
+    removed_from_queue = _remove_queued_heavy_task(task_id)
+    if not removed_from_queue:
+        _cancel_running_heavy_task(task_id)
+    return task
 
 
 def is_cancel_requested(task_id: str | None) -> bool:
@@ -421,11 +429,13 @@ async def run_task_with_status(
     log_exception: bool = True,
     complete_task_fn: Callable[[str, str | None, dict | None], None] = complete_task,
     fail_task_fn: Callable[[str, str, str | None], None] = fail_task,
+    cancel_task_fn: Callable[[str, str, dict | None], None] = cancel_task,
 ) -> object:
     try:
         result = await _resolve_task_operation(operation)
         if isinstance(result, dict):
             if result.get("cancelled"):
+                cancel_task_fn(task_id, "任务已停止", result)
                 return result
             if result.get("error"):
                 fail_task_fn(task_id, failure_message, str(result.get("error")))
@@ -466,8 +476,29 @@ def start_heavy_task_queue() -> None:
     _HEAVY_TASK_ACCEPTING = True
 
 
+def _remove_queued_heavy_task(task_id: str) -> bool:
+    if not _HEAVY_TASK_QUEUE:
+        return False
+    retained = [item for item in _HEAVY_TASK_QUEUE if item[0] != task_id]
+    removed = len(retained) != len(_HEAVY_TASK_QUEUE)
+    if removed:
+        _HEAVY_TASK_QUEUE.clear()
+        _HEAVY_TASK_QUEUE.extend(retained)
+        log_event("task_queue.queued_task_removed", task_id=task_id)
+    return removed
+
+
+def _cancel_running_heavy_task(task_id: str) -> bool:
+    running_task = _HEAVY_TASK_RUNNING_TASK
+    if _HEAVY_TASK_RUNNING_ID != task_id or not running_task or running_task.done():
+        return False
+    running_task.cancel()
+    log_event("task_queue.running_task_cancelled", task_id=task_id)
+    return True
+
+
 async def _heavy_task_worker() -> None:
-    global _HEAVY_TASK_RUNNING_ID, _HEAVY_TASK_WORKER
+    global _HEAVY_TASK_RUNNING_ID, _HEAVY_TASK_RUNNING_TASK, _HEAVY_TASK_WORKER
     while True:
         async with _get_heavy_task_lock():
             if not _HEAVY_TASK_QUEUE:
@@ -487,7 +518,19 @@ async def _heavy_task_worker() -> None:
                 continue
             if task.get("status") == TASK_STATUS_QUEUED:
                 update_task(task_id, status=TASK_STATUS_RUNNING, message=task.get("message") or "任务开始执行")
-            await task_factory()
+            _HEAVY_TASK_RUNNING_TASK = asyncio.create_task(task_factory())
+            try:
+                await _HEAVY_TASK_RUNNING_TASK
+            except asyncio.CancelledError:
+                current = _get_mutable_task(task_id)
+                if current and current.get("status") not in FINISHED_TASK_STATUSES:
+                    cancel_task(
+                        task_id,
+                        "任务已停止",
+                        {**(current.get("result") or {}), "cancelled": True},
+                    )
+                if asyncio.current_task().cancelling():
+                    raise
         except Exception as exc:
             try:
                 current = _get_mutable_task(task_id)
@@ -506,6 +549,7 @@ async def _heavy_task_worker() -> None:
             async with _get_heavy_task_lock():
                 if _HEAVY_TASK_RUNNING_ID == task_id:
                     _HEAVY_TASK_RUNNING_ID = None
+                    _HEAVY_TASK_RUNNING_TASK = None
 
 
 def enqueue_heavy_task(task_id: str, task_factory: HeavyTaskFactory) -> asyncio.Task:

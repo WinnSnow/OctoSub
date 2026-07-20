@@ -6,7 +6,7 @@ from schemas import RetryRequest
 from scrape_service import get_task_progress_payload, retry_missing_links_payload, retry_single_message
 from task_retry_service import retry_task_payload
 from task_service import get_task, list_failed_task_reasons, list_tasks, request_cancel_task
-from task_status import CANCELLABLE_TASK_STATUSES, TASK_STATUS_CANCEL_REQUESTED, VISIBLE_TASK_STATUSES
+from task_status import CANCELLABLE_TASK_STATUSES, CANCELLABLE_TASK_TYPES, TASK_STATUS_CANCEL_REQUESTED, VISIBLE_TASK_STATUSES
 
 
 router = APIRouter()
@@ -59,6 +59,8 @@ async def cancel_running_task(task_id: str):
         task = get_task(task_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="任务不存在") from None
+    if task.get("type") not in CANCELLABLE_TASK_TYPES:
+        raise HTTPException(status_code=400, detail="该任务类型不支持停止")
     if task.get("status") not in CANCELLABLE_TASK_STATUSES:
         raise HTTPException(status_code=400, detail="只有排队中或运行中的任务可以停止")
     request_cancel_task(task_id)

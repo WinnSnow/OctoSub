@@ -11,6 +11,15 @@ TASK_STATUS_PARTIAL_FAILED = "partial_failed"
 TASK_STATUS_ALL = "all"
 ACTIVE_TASK_STATUSES = {TASK_STATUS_QUEUED, TASK_STATUS_RUNNING, TASK_STATUS_CANCEL_REQUESTED}
 CANCELLABLE_TASK_STATUSES = ACTIVE_TASK_STATUSES
+CANCELLABLE_TASK_TYPES = {
+    "fetch",
+    "retry",
+    "retry_missing_links",
+    "poster_match",
+    "subscription_check",
+    "subscription_refresh",
+    "jellyfin_library_sync",
+}
 FAILED_TASK_STATUSES = {TASK_STATUS_FAILED, TASK_STATUS_PARTIAL_FAILED}
 FINISHED_TASK_STATUSES = {
     TASK_STATUS_COMPLETED,

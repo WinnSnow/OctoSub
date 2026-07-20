@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from jellyfin_library_index_service import get_jellyfin_library_index_summary, sync_jellyfin_library_index
 from jellyfin_service import (
@@ -9,7 +9,8 @@ from jellyfin_service import (
     save_jellyfin_config_values,
     test_jellyfin_config_payload,
 )
-from task_service import create_task, run_task_with_status, update_task
+from task_service import create_task, enqueue_heavy_task, run_task_with_status, update_task
+from task_status import TASK_STATUS_QUEUED
 from utils import safe_error_detail as _safe_error_detail
 
 
@@ -48,12 +49,17 @@ async def get_jellyfin_library_index():
 
 
 @router.post("/api/jellyfin/sync-library")
-async def sync_jellyfin_library(background_tasks: BackgroundTasks):
+async def sync_jellyfin_library():
     jellyfin = await ensure_jellyfin_client()
     if not jellyfin:
         raise HTTPException(status_code=400, detail="Jellyfin 未配置")
 
-    task_id = create_task("jellyfin_library_sync", "Jellyfin 媒体库同步", message="正在准备同步 Jellyfin 媒体库索引...")
+    task_id = create_task(
+        "jellyfin_library_sync",
+        "Jellyfin 媒体库同步",
+        message="Jellyfin 媒体库索引同步任务排队中...",
+        status=TASK_STATUS_QUEUED,
+    )
 
     async def run_sync():
         await run_task_with_status(
@@ -66,8 +72,12 @@ async def sync_jellyfin_library(background_tasks: BackgroundTasks):
             failure_message="Jellyfin 媒体库同步失败",
         )
 
-    background_tasks.add_task(run_sync)
-    return {"task_id": task_id, "message": "Jellyfin 媒体库同步任务已启动"}
+    enqueue_heavy_task(task_id, run_sync)
+    return {
+        "task_id": task_id,
+        "message": "Jellyfin 媒体库同步任务已加入后台队列",
+        "status": TASK_STATUS_QUEUED,
+    }
 
 
 @router.post("/api/jellyfin/config")

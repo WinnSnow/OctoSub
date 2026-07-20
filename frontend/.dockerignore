@@ -6,7 +6,6 @@ yarn-error.log*
 
 # Production build
 build/
-dist/
 
 # Testing
 coverage/

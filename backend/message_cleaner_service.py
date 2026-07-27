@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass
 import re
 from urllib.parse import urlparse
 
-from utils import hostname_matches
+from utils import ED2K_FILE_URL_PATTERN, hostname_matches
 
 
 RESOURCE_DOMAINS = (
@@ -110,7 +110,11 @@ INTERMEDIATE_QUALITY_RE = re.compile(
 )
 INTERMEDIATE_CONTEXT_RE = re.compile(r"所属合集|包含影片|收录版本|链接")
 
-URL_RE = re.compile(r"https?://[^\s<>\"]+|magnet:\?xt=[^\s<>\"]+|ed2k://[^\s<>\"]+", re.IGNORECASE)
+URL_RE = re.compile(
+    rf"https?://[^\s<>\"]+|magnet:\?xt=[^\s<>\"]+|"
+    rf"{ED2K_FILE_URL_PATTERN}|ed2k://[^\s<>\"]+",
+    re.IGNORECASE,
+)
 TRAILING_URL_CHARS = "。。，，、；;！!？?）)]】》>\"'"
 
 

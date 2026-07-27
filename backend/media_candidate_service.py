@@ -13,7 +13,14 @@ from media_text_rules import (
 )
 from media_title_parse_service import parse_media_title
 from title_utils import clean_title, extract_labeled_title, looks_like_non_title_fragment
-from utils import classify_resource_url
+from utils import ED2K_FILE_URL_PATTERN, classify_resource_url
+
+
+RESOURCE_URL_RE = re.compile(
+    rf"https?://[^\s\"'<>）)】]+|magnet:\?xt=[^\s\"'<>）)】]+|"
+    rf"{ED2K_FILE_URL_PATTERN}|ed2k://[^\s\"'<>）)】]+",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -46,7 +53,7 @@ def _dedupe(items: Iterable[str]) -> list[str]:
 def _normalize_links(links: list[str] | None, raw_text: str | None = None) -> list[str]:
     values = list(links or [])
     if raw_text:
-        values.extend(re.findall(r"https?://[^\s\"'<>）)】]+|magnet:\?xt=[^\s\"'<>）)】]+|ed2k://[^\s\"'<>）)】]+", raw_text))
+        values.extend(RESOURCE_URL_RE.findall(raw_text))
     return _dedupe(url.rstrip(".,，。;；") for url in values)
 
 

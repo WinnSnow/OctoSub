@@ -4,6 +4,12 @@ import re
 from urllib.parse import parse_qs, urlparse, urlencode
 
 
+ED2K_FILE_URL_PATTERN = (
+    r"ed2k://\|file\|[^|\r\n]+\|\d+\|[0-9a-f]{32}\|"
+    r"(?:[^|\r\n]+\|)*/"
+)
+
+
 def hostname_matches(host: str, allowed_domains: tuple[str, ...]) -> bool:
     host = (host or "").lower().rstrip(".")
     return any(host == domain or host.endswith(f".{domain}") for domain in allowed_domains)
@@ -97,7 +103,8 @@ def extract_resource_links_from_text(text: str) -> list[dict]:
     patterns = [
         r"https?://[^\s\"'<>）)】]+",
         r"magnet:\?xt=[^\s\"'<>）)】]+",
-        r"ed2k://[^\s\"'<>）)】]+",
+        ED2K_FILE_URL_PATTERN,
+        r"ed2k://[^\s\"'<>）)】|｜`]+",
     ]
     seen = set()
     links = []

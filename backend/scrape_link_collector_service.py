@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from message_extraction_service import extract_links, extract_links_from_telegraph
 from structured_logging import log_event
-from utils import append_query_param, hostname_matches, link_with_password
+from utils import ED2K_FILE_URL_PATTERN, append_query_param, hostname_matches, link_with_password
 
 
 INTERMEDIATE_LINK_CONCURRENCY = 5
@@ -14,7 +14,8 @@ INTERMEDIATE_LINK_TIMEOUT_SECONDS = 8
 _INTERMEDIATE_LINK_SEMAPHORE = asyncio.Semaphore(INTERMEDIATE_LINK_CONCURRENCY)
 
 URL_RE = re.compile(
-    r"https?://[^\s\"'<>）)】|｜]+|ed2k://[^\s\"'<>）)】|｜]+|magnet:\?xt=[^\s\"'<>）)】|｜]+",
+    rf"https?://[^\s\"'<>）)】|｜]+|{ED2K_FILE_URL_PATTERN}|"
+    r"ed2k://[^\s\"'<>）)】|｜]+|magnet:\?xt=[^\s\"'<>）)】|｜]+",
     re.IGNORECASE,
 )
 RESOURCE_DOMAINS = (
@@ -162,10 +163,7 @@ def has_resource_link_entrypoint(
 ) -> bool:
     if any(item["type"] in {"115", "intermediate"} for item in extract_links_fn(message)):
         return True
-    return bool(re.search(
-        r"https?://pan\.quark\.cn/s/[\w\d]+|ed2k://[^\s]+|magnet:\?xt=[^\s]+",
-        message.text or "",
-    ))
+    return any(_is_resource_url(url) for url in _regex_urls(URL_RE, message.text or ""))
 
 
 async def extract_intermediate_links(
@@ -284,10 +282,11 @@ async def collect_resource_links(
             all_found_links.extend(value)
 
     if not all_found_links:
-        regex_found_links = re.findall(
-            r"(https?://pan\.quark\.cn/s/[\w\d]+|ed2k://[^\s]+|magnet:\?xt=[^\s]+)",
-            message.text,
-        )
+        regex_found_links = [
+            url
+            for url in _regex_urls(URL_RE, message.text)
+            if _is_resource_url(url)
+        ]
         all_found_links.extend(regex_found_links)
 
     return dedupe_preserve_order(all_found_links)

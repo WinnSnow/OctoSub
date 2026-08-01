@@ -51,6 +51,7 @@ export function useHomeSearch() {
   const loadingRequestIdRef = useRef(0);
   const foregroundRequestIdRef = useRef(0);
   const localPageRef = useRef(1);
+  const localSearchDebounceKeyRef = useRef(null);
   const scrollAfterLocalPageLoadRef = useRef(false);
   const libraryStateRequestIdRef = useRef(0);
   const getCurrentLocalPage = useCallback(() => localPageRef.current, []);
@@ -199,6 +200,7 @@ export function useHomeSearch() {
         const requestedPage = Math.max(1, nextPage);
         if (!silent) {
           localPageRef.current = requestedPage;
+          localSearchDebounceKeyRef.current = JSON.stringify([trimmed, activeLocalChannels]);
         }
         const {
           results: nextResults,
@@ -254,6 +256,7 @@ export function useHomeSearch() {
     searchRequestIdRef.current += 1;
     libraryStateRequestIdRef.current += 1;
     loadingRequestIdRef.current = 0;
+    localSearchDebounceKeyRef.current = null;
     setMode(nextMode);
     setLoading(false);
     const snapshot = modeSnapshots[nextMode];
@@ -293,7 +296,15 @@ export function useHomeSearch() {
 
   useEffect(() => {
     if (mode !== 'local' || isComposing) return undefined;
+    const debounceKey = JSON.stringify([
+      keyword.trim(),
+      localSourceFilter && localSourceFilter !== 'all' ? [localSourceFilter] : [],
+    ]);
     const timer = setTimeout(() => {
+      if (localSearchDebounceKeyRef.current === debounceKey) {
+        localSearchDebounceKeyRef.current = null;
+        return;
+      }
       runSearch({ nextPage: 1 });
     }, HOME_LOCAL_SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
